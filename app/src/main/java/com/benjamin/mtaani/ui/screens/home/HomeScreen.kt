@@ -1,5 +1,6 @@
 package com.benjamin.mtaani.ui.screens.home
 
+import android.R.attr.id
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,15 +33,20 @@ import com.benjamin.mtaani.R
 import com.benjamin.mtaani.navigation.ROUT_ABOUT
 import com.benjamin.mtaani.navigation.ROUT_HOME
 import com.benjamin.mtaani.navigation.ROUT_LOGIN
+import com.benjamin.mtaani.navigation.ROUT_MAP
+import com.benjamin.mtaani.navigation.ROUT_MY_REPORTS
+import com.benjamin.mtaani.navigation.ROUT_PROFILE
+import com.benjamin.mtaani.navigation.ROUT_REPORT_ISSUE
+import com.benjamin.mtaani.navigation.issueDetailRoute
+import com.benjamin.mtaani.ui.theme.KenyanGreen
+import com.benjamin.mtaani.ui.theme.LightGreen
+import com.benjamin.mtaani.ui.theme.SoftGreen
 import kotlinx.coroutines.launch
-
-val KenyanGreen = Color(0xFF1B5E20)
-val LightGreen = Color(0xFF4CAF50)
-val SoftGreen = Color(0xFFE8F5E9)
 
 // Data classes
 data class IssueCategory(val name: String, val icon: ImageVector)
 data class RecentReport(
+    val id: String,
     val title: String,
     val location: String,
     val time: String,
@@ -62,9 +68,9 @@ fun HomeScreen(navController: NavController) {
     )
 
     val recentReports = listOf(
-        RecentReport("Pothole on River Road", "Nairobi CBD", "Today, 8:30 AM", "In Progress"),
-        RecentReport("Garbage not collected at Koinange St.", "Koinange St, Nairobi", "Yesterday, 4:15 PM", "Resolved"),
-        RecentReport("Broken street light near the market", "Gikomba, Nairobi", "May 12, 2024", "Reported"),
+        RecentReport("1", "Pothole on River Road", "Nairobi CBD", "Today, 8:30 AM", "In Progress"),
+        RecentReport("2", "Garbage not collected at Koinange St.", "Koinange St, Nairobi", "Yesterday, 4:15 PM", "Resolved"),
+        RecentReport("3", "Broken street light near the market", "Gikomba, Nairobi", "May 12, 2024", "Reported"),
     )
 
     ModalNavigationDrawer(
@@ -100,25 +106,16 @@ fun HomeScreen(navController: NavController) {
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        /* Navigate to Map */
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                    label = { Text("📋 Issue Detail Screen") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        /* Navigate to Details */
+                        navController.navigate(ROUT_MAP)
                     }
                 )
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Default.History, contentDescription = null) },
-                    label = { Text("📜 My Reports Screen") },
+                    label = { Text("📜 My Reports") },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        /* Navigate to My Reports */
+                        navController.navigate(ROUT_MY_REPORTS)
                     }
                 )
                 NavigationDrawerItem(
@@ -132,11 +129,12 @@ fun HomeScreen(navController: NavController) {
                 )
                 NavigationDrawerItem(
                     icon = { Icon(Icons.Default.Person, contentDescription = null) },
+
                     label = { Text("👤 Profile Screen") },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        /* Navigate to Profile */
+                        navController.navigate(ROUT_PROFILE)
                     }
                 )
             }
@@ -165,12 +163,12 @@ fun HomeScreen(navController: NavController) {
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Default.Person, contentDescription = "Login") },
-                        label = { Text("Login") },
+                        icon = { Icon(Icons.Default.History, contentDescription = "My Reports") },
+                        label = { Text("My Reports") },
                         selected = selectedBottomIndex == 2,
                         onClick = {
                             selectedBottomIndex = 2
-                            navController.navigate(ROUT_LOGIN)
+                            navController.navigate(ROUT_MY_REPORTS)
                         }
                     )
                 }
@@ -243,7 +241,7 @@ fun HomeScreen(navController: NavController) {
                             .padding(bottom = 24.dp)
                     ) {
                         Button(
-                            onClick = { /* navController.navigate(ROUT_REPORT_ISSUE) */ },
+                            onClick = { navController.navigate(ROUT_REPORT_ISSUE)},
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
@@ -328,7 +326,9 @@ fun HomeScreen(navController: NavController) {
                 items(recentReports) { report ->
                     ReportCard(
                         report = report,
-                        onClick = { /* Navigate to detail */ }
+                        onClick = {
+                            navController.navigate(issueDetailRoute(report.id))
+                        }
                     )
                 }
             }

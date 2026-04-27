@@ -24,6 +24,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.benjamin.mtaani.navigation.ROUT_ONBOARDING
 import androidx.compose.ui.unit.dp
 
 
@@ -33,8 +34,10 @@ import androidx.compose.ui.unit.dp
 fun SplashScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     coroutineScope.launch {
-        delay(6000)
-        //navController.navigate(ROUT_LOGIN)
+        delay(2000)
+        navController.navigate(ROUT_ONBOARDING) {
+            popUpTo(0)
+        }
     }
     Column(
         Modifier
@@ -45,24 +48,13 @@ fun SplashScreen(navController: NavController) {
     ) {
 
         Image(
-            painter = painterResource(R.drawable.glass),
+            painter = painterResource(R.drawable.mtaani_logo),
             contentDescription = "img",
             modifier = Modifier.size(300.dp))
 
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Mtaani",
-            color = Color.Black,
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Sauti ya Wananchi",
-            color = Color.Black.copy(alpha = 0.8f),
-            fontSize = 16.sp
-        )
+
     }
 }
 

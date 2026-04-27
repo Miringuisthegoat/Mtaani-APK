@@ -1,4 +1,4 @@
-package com.benjamin.mtaani.ui.screens.report
+package com.benjamin.mtaani.ui.screens.reports
 
 import com.benjamin.mtaani.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel

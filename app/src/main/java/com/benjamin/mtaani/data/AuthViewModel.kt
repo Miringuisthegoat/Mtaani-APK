@@ -11,7 +11,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 
 class AuthViewModel(var navController: NavController, var context: Context) {
-    private val mAuth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val mAuth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
 
     fun signup(username: String, email: String, password: String, confirmpassword: String) {
         if (email.isBlank() || password.isBlank() || confirmpassword.isBlank()) {

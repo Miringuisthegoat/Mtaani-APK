@@ -29,7 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -40,12 +42,17 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.benjamin.mtaani.R
+import com.benjamin.mtaani.data.AuthViewModel
 import com.benjamin.mtaani.navigation.ROUT_HOME
 import com.benjamin.mtaani.navigation.ROUT_REGISTER
+import com.benjamin.mtaani.ui.theme.KenyanGreen
 import com.benjamin.mtaani.ui.theme.OLdNavy
 
 @Composable
 fun LoginScreen(navController: NavController){
+    val context = LocalContext.current
+    // AuthViewModel is now preview-safe because it uses lazy initialization for Firebase
+    val authViewModel = remember { AuthViewModel(navController, context) }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -83,9 +90,11 @@ fun LoginScreen(navController: NavController){
             placeholder = {Text("Enter E-mail Address")},
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = OLdNavy,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                unfocusedBorderColor = KenyanGreen,
                 focusedBorderColor = Color.Black,
-                unfocusedLeadingIconColor = OLdNavy,
+                unfocusedLeadingIconColor = KenyanGreen,
             )
         )
 
@@ -99,9 +108,11 @@ fun LoginScreen(navController: NavController){
             placeholder = {Text("Password")},
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = OLdNavy,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                unfocusedBorderColor = KenyanGreen,
                 focusedBorderColor = Color.Black,
-                unfocusedLeadingIconColor = OLdNavy,
+                unfocusedLeadingIconColor = KenyanGreen,
             ),
             visualTransformation = PasswordVisualTransformation(),
         )
@@ -110,9 +121,9 @@ fun LoginScreen(navController: NavController){
 
         Button(
             onClick = {
-                //authViewModel.login(email, password)
+                authViewModel.login(email, password)
             },
-            colors = ButtonDefaults.buttonColors(OLdNavy),
+            colors = ButtonDefaults.buttonColors(KenyanGreen),
             shape = RoundedCornerShape(10.dp),
         ) {
             Text(text = "Log-in")
@@ -124,6 +135,7 @@ fun LoginScreen(navController: NavController){
             Text(
                 text = "Don't have an Account? Register",
                 fontSize = 15.sp,
+                color =Black
             )
         }
 
@@ -131,6 +143,7 @@ fun LoginScreen(navController: NavController){
             Text(
                 text = "Go to Home",
                 fontSize = 15.sp,
+                color =Black
             )
         }
     }

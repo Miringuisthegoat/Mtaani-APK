@@ -10,8 +10,13 @@ import androidx.navigation.compose.rememberNavController
 import com.benjamin.mtaani.ui.screens.about.AboutScreen
 import com.benjamin.mtaani.ui.screens.auth.LoginScreen
 import com.benjamin.mtaani.ui.screens.auth.RegisterScreen
+import com.benjamin.mtaani.ui.screens.detail.IssueDetailScreen
 import com.benjamin.mtaani.ui.screens.home.HomeScreen
-import com.benjamin.mtaani.ui.screens.report.ReportIssueScreen
+import com.benjamin.mtaani.ui.screens.maps.MapScreen
+import com.benjamin.mtaani.ui.screens.onboarding.OnboardingScreen
+import com.benjamin.mtaani.ui.screens.profile.ProfileScreen
+import com.benjamin.mtaani.ui.screens.reports.MyReportsScreen
+import com.benjamin.mtaani.ui.screens.reports.ReportIssueScreen
 import com.benjamin.mtaani.ui.screens.splash.SplashScreen
 
 
@@ -19,7 +24,7 @@ import com.benjamin.mtaani.ui.screens.splash.SplashScreen
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = ROUT_SPLASH
+    startDestination: String = ROUT_ONBOARDING
 ) {
     NavHost(
         navController = navController,
@@ -28,6 +33,9 @@ fun AppNavHost(
     ) {
         composable(ROUT_SPLASH) {
             SplashScreen(navController = navController)
+        }
+        composable(ROUT_ONBOARDING) {
+            OnboardingScreen(navController = navController)
         }
         composable(ROUT_LOGIN) {
             LoginScreen(navController = navController)
@@ -42,8 +50,23 @@ fun AppNavHost(
             AboutScreen(navController = navController)
         }
         composable(ROUT_REPORT_ISSUE) {
-                ReportIssueScreen(navController = navController)
+            ReportIssueScreen(navController = navController)
             }
+        composable(ROUT_PROFILE) {
+            ProfileScreen(navController = navController)
+        }
+        composable(ROUT_MY_REPORTS) {
+            MyReportsScreen(navController = navController)
+        }
+        composable(ROUT_MAP) {
+            MapScreen(navController = navController)
+        }
+        composable("$ROUT_ISSUE_DETAIL/{id}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("id") ?: ""
+            IssueDetailScreen(navController = navController, issueId = id)
+        }
+
         }
 
     }
+

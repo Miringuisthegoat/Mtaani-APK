@@ -1,4 +1,4 @@
-package com.benjamin.mtaani.ui.screens.report
+package com.benjamin.mtaani.ui.screens.reports
 
 import android.content.Intent
 import android.net.Uri

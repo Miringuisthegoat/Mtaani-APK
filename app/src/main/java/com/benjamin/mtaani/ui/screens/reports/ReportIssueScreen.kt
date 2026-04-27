@@ -1,6 +1,14 @@
-package com.benjamin.mtaani.ui.screens.report
+package com.benjamin.mtaani.ui.screens.reports
 
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
+import android.provider.MediaStore
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,13 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.benjamin.mtaani.navigation.ROUT_MAP
+import com.benjamin.mtaani.ui.theme.KenyanGreen
+import com.benjamin.mtaani.ui.theme.SoftGreen
 import kotlinx.coroutines.launch
-
-val KenyanGreen = Color(0xFF1B5E20)
-val LightGreen = Color(0xFF4CAF50)
-val SoftGreen = Color(0xFFE8F5E9)
 
 data class Category(val name: String, val icon: ImageVector)
 
@@ -53,6 +63,28 @@ fun ReportIssueScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var isImprovingDescription by remember { mutableStateOf(false) }
     var severity by remember { mutableStateOf("") }
+
+    val capturedPhotos = remember { mutableStateListOf<Bitmap>() }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        bitmap?.let {
+            capturedPhotos.add(it)
+        }
+    }
+
+    // Observe result from MapScreen
+    val result = navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<String>("selected_location")
+        ?.observeAsState()
+
+    LaunchedEffect(result?.value) {
+        result?.value?.let { pickedLocation ->
+            location = pickedLocation
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -99,10 +131,20 @@ fun ReportIssueScreen(navController: NavController) {
             )
 
             // Location Section
-            LocationSection(location = location)
+            LocationSection(
+                location = location,
+                onMapClick = {
+                    navController.navigate(ROUT_MAP)
+                }
+            )
 
             // Add Photos Section
-            PhotoSection()
+            PhotoSection(
+                capturedPhotos = capturedPhotos,
+                onAddPhotoClick = {
+                    cameraLauncher.launch()
+                }
+            )
 
             // Description Section
             DescriptionSection(
@@ -172,26 +214,26 @@ fun ReportIssueScreen(navController: NavController) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = Color.White,
+                        color = Color.Black,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "AI is generating email...",
-                        color = Color.White,
+                        color = Color.Black,
                         fontWeight = FontWeight.Bold
                     )
                 } else {
                     Icon(
                         Icons.Default.Send,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Submit Report",
-                        color = Color.White,
+                        color = Color.Black,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -255,7 +297,7 @@ fun CategorySection(
 }
 
 @Composable
-fun LocationSection(location: String) {
+fun LocationSection(location: String, onMapClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -297,7 +339,8 @@ fun LocationSection(location: String) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(80.dp)
-                    .background(SoftGreen, RoundedCornerShape(12.dp)),
+                    .background(SoftGreen, RoundedCornerShape(12.dp))
+                    .clickable { onMapClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -308,7 +351,7 @@ fun LocationSection(location: String) {
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Map preview", color = KenyanGreen, fontSize = 13.sp)
+                    Text("Map preview (Open Maps to pin)", color = KenyanGreen, fontSize = 13.sp)
                 }
             }
         }
@@ -316,7 +359,10 @@ fun LocationSection(location: String) {
 }
 
 @Composable
-fun PhotoSection() {
+fun PhotoSection(
+    capturedPhotos: List<Bitmap>,
+    onAddPhotoClick: () -> Unit
+) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -335,21 +381,27 @@ fun PhotoSection() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                PhotoSlot(hasPhoto = true)
-                PhotoSlot(hasPhoto = true)
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .border(2.dp, Color.LightGray, RoundedCornerShape(12.dp))
-                        .clickable { },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add Photo",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(28.dp)
-                    )
+                // Display captured photos
+                capturedPhotos.forEach { bitmap ->
+                    PhotoSlot(bitmap = bitmap)
+                }
+
+                // Add button (only show if less than 3 photos)
+                if (capturedPhotos.size < 3) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .border(2.dp, Color.LightGray, RoundedCornerShape(12.dp))
+                            .clickable { onAddPhotoClick() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Add,
+                            contentDescription = "Add Photo",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
         }
@@ -419,6 +471,8 @@ fun DescriptionSection(
                     .height(120.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
                     focusedBorderColor = KenyanGreen,
                     unfocusedBorderColor = Color.LightGray
                 ),
@@ -491,14 +545,23 @@ fun CategoryChip(
 }
 
 @Composable
-fun PhotoSlot(hasPhoto: Boolean) {
+fun PhotoSlot(bitmap: Bitmap? = null) {
     Box(
         modifier = Modifier
             .size(80.dp)
             .background(SoftGreen, RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
-        if (hasPhoto) {
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+        } else {
             Icon(
                 Icons.Default.Image,
                 contentDescription = null,

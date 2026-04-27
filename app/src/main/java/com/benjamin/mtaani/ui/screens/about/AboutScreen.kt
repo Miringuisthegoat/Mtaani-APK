@@ -22,9 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-
-val KenyanGreen = Color(0xFF1B5E20)
-val LightGreen = Color(0xFF4CAF50)
+import com.benjamin.mtaani.ui.theme.KenyanGreen
+import com.benjamin.mtaani.ui.theme.LightGreen
 
 @Composable
 fun AboutScreen(navController: NavController) {
@@ -144,16 +143,10 @@ fun AboutScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "Benjamin",
+                        "The BirdBox",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = KenyanGreen
-                    )
-                    Text(
-                        "Final Year Computer Science Project",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     HorizontalDivider()
