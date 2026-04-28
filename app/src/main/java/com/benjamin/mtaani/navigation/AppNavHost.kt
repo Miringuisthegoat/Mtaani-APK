@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import com.benjamin.mtaani.ui.screens.about.AboutScreen
 import com.benjamin.mtaani.ui.screens.auth.LoginScreen
 import com.benjamin.mtaani.ui.screens.auth.RegisterScreen
+import com.benjamin.mtaani.ui.screens.community.CommunityFeedScreen
 import com.benjamin.mtaani.ui.screens.detail.IssueDetailScreen
 import com.benjamin.mtaani.ui.screens.home.HomeScreen
 import com.benjamin.mtaani.ui.screens.maps.MapScreen
@@ -61,6 +62,10 @@ fun AppNavHost(
         composable(ROUT_MAP) {
             MapScreen(navController = navController)
         }
+        composable(ROUT_COMMUNITY_FEED) {
+            CommunityFeedScreen(navController = navController)
+        }
+
         composable("$ROUT_ISSUE_DETAIL/{id}") { backStackEntry ->
             val id = backStackEntry.arguments?.getString("id") ?: ""
             IssueDetailScreen(navController = navController, issueId = id)

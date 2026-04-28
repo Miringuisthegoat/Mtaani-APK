@@ -1,13 +1,10 @@
 package com.benjamin.mtaani.ui.screens.reports
 
-import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,17 +20,19 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
 import com.benjamin.mtaani.navigation.ROUT_MAP
 import com.benjamin.mtaani.ui.theme.KenyanGreen
 import com.benjamin.mtaani.ui.theme.SoftGreen
@@ -64,17 +63,26 @@ fun ReportIssueScreen(navController: NavController) {
     var isImprovingDescription by remember { mutableStateOf(false) }
     var severity by remember { mutableStateOf("") }
 
-    val capturedPhotos = remember { mutableStateListOf<Bitmap>() }
+    val capturedPhotos = remember { mutableStateListOf<Uri>() }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        bitmap?.let {
-            capturedPhotos.add(it)
+    // -----------------------------------------------------------------------
+    // Photo Picker Result Launcher
+    // -----------------------------------------------------------------------
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 3)
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            // Add new uris to the list, respecting the 3-image limit
+            val remainingSlots = 3 - capturedPhotos.size
+            if (remainingSlots > 0) {
+                capturedPhotos.addAll(uris.take(remainingSlots))
+            } else {
+                Toast.makeText(context, "Maximum 3 photos allowed", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
-    // Observe result from MapScreen
+    // Observe location result coming back from MapScreen
     val result = navController.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<String>("selected_location")
@@ -111,8 +119,6 @@ fun ReportIssueScreen(navController: NavController) {
             )
         }
     ) { paddingValues ->
-        // Refactored the UI into smaller section composables to resolve rendering issues
-        // and improve maintainability.
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -133,16 +139,16 @@ fun ReportIssueScreen(navController: NavController) {
             // Location Section
             LocationSection(
                 location = location,
-                onMapClick = {
-                    navController.navigate(ROUT_MAP)
-                }
+                onMapClick = { navController.navigate(ROUT_MAP) }
             )
 
             // Add Photos Section
             PhotoSection(
                 capturedPhotos = capturedPhotos,
                 onAddPhotoClick = {
-                    cameraLauncher.launch()
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
                 }
             )
 
@@ -156,15 +162,11 @@ fun ReportIssueScreen(navController: NavController) {
                 onImproveDescription = {
                     scope.launch {
                         isImprovingDescription = true
-                        description = GeminiHelper.improveDescription(
-                            description,
-                            selectedCategory
-                        )
+                        description = GeminiHelper.improveDescription(description, selectedCategory)
                         isImprovingDescription = false
                     }
                 }
             )
-
 
             // Submit Button
             Button(
@@ -172,30 +174,18 @@ fun ReportIssueScreen(navController: NavController) {
                     scope.launch {
                         isLoading = true
                         try {
-                            // Step 1: Estimate severity
                             severity = GeminiHelper.estimateSeverity(description, selectedCategory)
-
-                            // Step 2: Generate formal email
                             val emailContent = GeminiHelper.generateCountyEmail(
                                 category = selectedCategory,
                                 description = description,
                                 location = location
                             )
-
-                            // Step 3: Parse subject and body
                             val subject = EmailSender.parseSubject(emailContent)
                             val body = EmailSender.parseBody(emailContent)
-
-                            // Step 4: Open email app
                             val intent = EmailSender.getEmailIntent(subject, body)
                             context.startActivity(intent)
-
                         } catch (e: Exception) {
-                            Toast.makeText(
-                                context,
-                                "Error: ${e.message}",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                         }
                         isLoading = false
                     }
@@ -204,12 +194,8 @@ fun ReportIssueScreen(navController: NavController) {
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = KenyanGreen
-                ),
-                enabled = selectedCategory.isNotEmpty() &&
-                        description.isNotEmpty() &&
-                        !isLoading
+                colors = ButtonDefaults.buttonColors(containerColor = KenyanGreen),
+                enabled = selectedCategory.isNotEmpty() && description.isNotEmpty() && !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -218,11 +204,7 @@ fun ReportIssueScreen(navController: NavController) {
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "AI is generating email...",
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("AI is generating email...", color = Color.Black, fontWeight = FontWeight.Bold)
                 } else {
                     Icon(
                         Icons.Default.Send,
@@ -245,6 +227,10 @@ fun ReportIssueScreen(navController: NavController) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Section composables
+// ---------------------------------------------------------------------------
+
 @Composable
 fun CategorySection(
     categories: List<Category>,
@@ -258,12 +244,7 @@ fun CategorySection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Select Category",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = Color.Black
-            )
+            Text("Select Category", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -305,12 +286,7 @@ fun LocationSection(location: String, onMapClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Location",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = Color.Black
-            )
+            Text("Location", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -321,17 +297,8 @@ fun LocationSection(location: String, onMapClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text(
-                        location,
-                        fontSize = 13.sp,
-                        color = Color.DarkGray,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        "Accurate to 10m",
-                        fontSize = 11.sp,
-                        color = Color.Gray
-                    )
+                    Text(location, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                    Text("Accurate to 10m", fontSize = 11.sp, color = Color.Gray)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -344,12 +311,7 @@ fun LocationSection(location: String, onMapClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Map,
-                        contentDescription = null,
-                        tint = KenyanGreen,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(Icons.Default.Map, contentDescription = null, tint = KenyanGreen, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Map preview (Open Maps to pin)", color = KenyanGreen, fontSize = 13.sp)
                 }
@@ -360,7 +322,7 @@ fun LocationSection(location: String, onMapClick: () -> Unit) {
 
 @Composable
 fun PhotoSection(
-    capturedPhotos: List<Bitmap>,
+    capturedPhotos: List<Uri>,
     onAddPhotoClick: () -> Unit
 ) {
     Card(
@@ -370,23 +332,14 @@ fun PhotoSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Add Photos",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = Color.Black
-            )
+            Text("Add Photos", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Display captured photos
-                capturedPhotos.forEach { bitmap ->
-                    PhotoSlot(bitmap = bitmap)
-                }
+                capturedPhotos.forEach { uri -> PhotoSlot(uri = uri) }
 
-                // Add button (only show if less than 3 photos)
                 if (capturedPhotos.size < 3) {
                     Box(
                         modifier = Modifier
@@ -429,13 +382,7 @@ fun DescriptionSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Description",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = Color.Black
-                )
-                // AI Improve Button
+                Text("Description", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
                 if (description.isNotEmpty() && selectedCategory.isNotEmpty()) {
                     TextButton(onClick = onImproveDescription) {
                         if (isImprovingDescription) {
@@ -452,11 +399,7 @@ fun DescriptionSection(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                "AI Improve",
-                                color = KenyanGreen,
-                                fontSize = 12.sp
-                            )
+                            Text("AI Improve", color = KenyanGreen, fontSize = 12.sp)
                         }
                     }
                 }
@@ -478,15 +421,14 @@ fun DescriptionSection(
                 ),
                 maxLines = 5
             )
-            // Severity badge
             if (severity.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 val severityColor = when (severity) {
-                    "Low" -> Color(0xFF4CAF50)
-                    "Medium" -> Color(0xFFFF9800)
-                    "High" -> Color(0xFFFF5722)
+                    "Low"      -> Color(0xFF4CAF50)
+                    "Medium"   -> Color(0xFFFF9800)
+                    "High"     -> Color(0xFFFF5722)
                     "Critical" -> Color(0xFFD32F2F)
-                    else -> Color.Gray
+                    else       -> Color.Gray
                 }
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -505,6 +447,10 @@ fun DescriptionSection(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Reusable small composables
+// ---------------------------------------------------------------------------
+
 @Composable
 fun CategoryChip(
     category: Category,
@@ -514,15 +460,8 @@ fun CategoryChip(
 ) {
     Column(
         modifier = modifier
-            .border(
-                2.dp,
-                if (isSelected) KenyanGreen else Color.LightGray,
-                RoundedCornerShape(12.dp)
-            )
-            .background(
-                if (isSelected) SoftGreen else Color.White,
-                RoundedCornerShape(12.dp)
-            )
+            .border(2.dp, if (isSelected) KenyanGreen else Color.LightGray, RoundedCornerShape(12.dp))
+            .background(if (isSelected) SoftGreen else Color.White, RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -539,27 +478,27 @@ fun CategoryChip(
             fontSize = 10.sp,
             color = if (isSelected) KenyanGreen else Color.Gray,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = TextAlign.Center
         )
     }
 }
 
 @Composable
-fun PhotoSlot(bitmap: Bitmap? = null) {
+fun PhotoSlot(uri: Uri? = null) {
     Box(
         modifier = Modifier
             .size(80.dp)
             .background(SoftGreen, RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
-        if (bitmap != null) {
+        if (uri != null) {
             Image(
-                bitmap = bitmap.asImageBitmap(),
+                painter = rememberAsyncImagePainter(uri),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(12.dp)),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                contentScale = ContentScale.Crop
             )
         } else {
             Icon(

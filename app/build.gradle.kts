@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.database)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
     implementation(libs.googleid)
     implementation(libs.coil.compose)
     implementation(libs.play.services.maps)
@@ -80,8 +81,16 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 
+
     //navigation
     implementation("androidx.navigation:navigation-runtime-ktx:2.8.5")
     implementation("androidx.navigation:navigation-compose:2.8.5")
+
+    //Maps
+    // FusedLocationProviderClient for the "My Location" FAB
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+
+// You can now REMOVE the Google Maps Compose dependency if Leaflet fully replaces it:
+// implementation("com.google.maps.android:maps-compose:...")
 
 }
