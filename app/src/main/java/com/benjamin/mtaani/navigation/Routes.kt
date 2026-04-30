@@ -14,6 +14,7 @@ const val ROUT_PROFILE = "profile"
 const val ROUT_COMMUNITY_FEED = "community_feed"
 const val ROUT_ISSUE_DETAIL = "issue_detail"
 const val ROUT_MAP = "map"
+const val ROUT_UPDATES = "updates"
 
 
 

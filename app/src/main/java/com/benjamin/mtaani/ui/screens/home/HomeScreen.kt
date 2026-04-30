@@ -37,6 +37,7 @@ import com.benjamin.mtaani.navigation.ROUT_MAP
 import com.benjamin.mtaani.navigation.ROUT_MY_REPORTS
 import com.benjamin.mtaani.navigation.ROUT_PROFILE
 import com.benjamin.mtaani.navigation.ROUT_REPORT_ISSUE
+import com.benjamin.mtaani.navigation.ROUT_UPDATES
 import com.benjamin.mtaani.navigation.issueDetailRoute
 import com.benjamin.mtaani.ui.theme.KenyanGreen
 import com.benjamin.mtaani.ui.theme.LightGreen
@@ -124,7 +125,7 @@ fun HomeScreen(navController: NavController) {
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        /* Navigate to Updates */
+                        navController.navigate(ROUT_UPDATES)
                     }
                 )
                 NavigationDrawerItem(

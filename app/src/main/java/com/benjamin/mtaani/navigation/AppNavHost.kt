@@ -8,7 +8,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.benjamin.mtaani.ui.screens.about.AboutScreen
-import com.benjamin.mtaani.ui.screens.auth.LoginScreen
 import com.benjamin.mtaani.ui.screens.auth.RegisterScreen
 import com.benjamin.mtaani.ui.screens.community.CommunityFeedScreen
 import com.benjamin.mtaani.ui.screens.detail.IssueDetailScreen
@@ -19,6 +18,7 @@ import com.benjamin.mtaani.ui.screens.profile.ProfileScreen
 import com.benjamin.mtaani.ui.screens.reports.MyReportsScreen
 import com.benjamin.mtaani.ui.screens.reports.ReportIssueScreen
 import com.benjamin.mtaani.ui.screens.splash.SplashScreen
+import com.benjamin.mtaani.ui.screens.updates.UpdatesScreen
 
 
 @Composable
@@ -39,7 +39,7 @@ fun AppNavHost(
             OnboardingScreen(navController = navController)
         }
         composable(ROUT_LOGIN) {
-            LoginScreen(navController = navController)
+            com.benjamin.mtaani.ui.screens.auth.MtaaniLoginScreen(navController = navController)
         }
         composable(ROUT_REGISTER) {
             RegisterScreen(navController = navController)
@@ -64,6 +64,9 @@ fun AppNavHost(
         }
         composable(ROUT_COMMUNITY_FEED) {
             CommunityFeedScreen(navController = navController)
+        }
+        composable(ROUT_UPDATES) {
+            UpdatesScreen(navController = navController)
         }
 
         composable("$ROUT_ISSUE_DETAIL/{id}") { backStackEntry ->

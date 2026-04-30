@@ -36,7 +36,10 @@ import coil.compose.rememberAsyncImagePainter
 import com.benjamin.mtaani.navigation.ROUT_MAP
 import com.benjamin.mtaani.ui.theme.KenyanGreen
 import com.benjamin.mtaani.ui.theme.SoftGreen
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class Category(val name: String, val icon: ImageVector)
 
@@ -66,13 +69,12 @@ fun ReportIssueScreen(navController: NavController) {
     val capturedPhotos = remember { mutableStateListOf<Uri>() }
 
     // -----------------------------------------------------------------------
-    // Photo Picker Result Launcher
+    // Photo Picker
     // -----------------------------------------------------------------------
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 3)
     ) { uris ->
         if (uris.isNotEmpty()) {
-            // Add new uris to the list, respecting the 3-image limit
             val remainingSlots = 3 - capturedPhotos.size
             if (remainingSlots > 0) {
                 capturedPhotos.addAll(uris.take(remainingSlots))
@@ -113,9 +115,7 @@ fun ReportIssueScreen(navController: NavController) {
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = KenyanGreen
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = KenyanGreen)
             )
         }
     ) { paddingValues ->
@@ -129,20 +129,17 @@ fun ReportIssueScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // Category Section
             CategorySection(
                 categories = categories,
                 selectedCategory = selectedCategory,
                 onCategorySelected = { selectedCategory = it }
             )
 
-            // Location Section
             LocationSection(
                 location = location,
                 onMapClick = { navController.navigate(ROUT_MAP) }
             )
 
-            // Add Photos Section
             PhotoSection(
                 capturedPhotos = capturedPhotos,
                 onAddPhotoClick = {
@@ -152,7 +149,6 @@ fun ReportIssueScreen(navController: NavController) {
                 }
             )
 
-            // Description Section
             DescriptionSection(
                 description = description,
                 onDescriptionChange = { description = it },
@@ -168,13 +164,18 @@ fun ReportIssueScreen(navController: NavController) {
                 }
             )
 
-            // Submit Button
+            // ---------------------------------------------------------------
+            // Submit Button — now saves to Firestore before opening email
+            // ---------------------------------------------------------------
             Button(
                 onClick = {
                     scope.launch {
                         isLoading = true
                         try {
+                            // Step 1: AI — estimate severity
                             severity = GeminiHelper.estimateSeverity(description, selectedCategory)
+
+                            // Step 2: AI — generate county email
                             val emailContent = GeminiHelper.generateCountyEmail(
                                 category = selectedCategory,
                                 description = description,
@@ -182,10 +183,53 @@ fun ReportIssueScreen(navController: NavController) {
                             )
                             val subject = EmailSender.parseSubject(emailContent)
                             val body = EmailSender.parseBody(emailContent)
-                            val intent = EmailSender.getEmailIntent(subject, body)
-                            context.startActivity(intent)
+
+                            // Step 3: Build the Issue map for Firestore
+                            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                            val issueId = UUID.randomUUID().toString()
+                            val issue = hashMapOf(
+                                "id"          to issueId,
+                                "category"    to selectedCategory,
+                                "description" to description,
+                                "location"    to location,
+                                "photoUrl"    to "",
+                                "status"      to "Reported",
+                                "upvotes"     to 0,
+                                "timestamp"   to System.currentTimeMillis(),
+                                "uid"         to uid,
+                                "severity"    to severity,
+                                "emailSent"   to true
+                            )
+
+                            // Step 4: Save to Firestore, then open email
+                            FirebaseFirestore.getInstance()
+                                .collection("issues")
+                                .document(issueId)
+                                .set(issue)
+                                .addOnSuccessListener {
+                                    // Open email app only after successful save
+                                    val intent = EmailSender.getEmailIntent(subject, body)
+                                    context.startActivity(intent)
+                                    Toast.makeText(
+                                        context,
+                                        "✅ Report submitted successfully!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(
+                                        context,
+                                        "❌ Failed to save: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Error: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                         isLoading = false
                     }
@@ -204,7 +248,11 @@ fun ReportIssueScreen(navController: NavController) {
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI is generating email...", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(
+                        "AI is generating email...",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
                 } else {
                     Icon(
                         Icons.Default.Send,
@@ -297,7 +345,12 @@ fun LocationSection(location: String, onMapClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
-                    Text(location, fontSize = 13.sp, color = Color.DarkGray, fontWeight = FontWeight.Medium)
+                    Text(
+                        location,
+                        fontSize = 13.sp,
+                        color = Color.DarkGray,
+                        fontWeight = FontWeight.Medium
+                    )
                     Text("Accurate to 10m", fontSize = 11.sp, color = Color.Gray)
                 }
             }
@@ -311,7 +364,12 @@ fun LocationSection(location: String, onMapClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Map, contentDescription = null, tint = KenyanGreen, modifier = Modifier.size(24.dp))
+                    Icon(
+                        Icons.Default.Map,
+                        contentDescription = null,
+                        tint = KenyanGreen,
+                        modifier = Modifier.size(24.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Map preview (Open Maps to pin)", color = KenyanGreen, fontSize = 13.sp)
                 }
@@ -339,7 +397,6 @@ fun PhotoSection(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 capturedPhotos.forEach { uri -> PhotoSlot(uri = uri) }
-
                 if (capturedPhotos.size < 3) {
                     Box(
                         modifier = Modifier
@@ -382,7 +439,12 @@ fun DescriptionSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Description", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.Black)
+                Text(
+                    "Description",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.Black
+                )
                 if (description.isNotEmpty() && selectedCategory.isNotEmpty()) {
                     TextButton(onClick = onImproveDescription) {
                         if (isImprovingDescription) {
@@ -460,8 +522,15 @@ fun CategoryChip(
 ) {
     Column(
         modifier = modifier
-            .border(2.dp, if (isSelected) KenyanGreen else Color.LightGray, RoundedCornerShape(12.dp))
-            .background(if (isSelected) SoftGreen else Color.White, RoundedCornerShape(12.dp))
+            .border(
+                2.dp,
+                if (isSelected) KenyanGreen else Color.LightGray,
+                RoundedCornerShape(12.dp)
+            )
+            .background(
+                if (isSelected) SoftGreen else Color.White,
+                RoundedCornerShape(12.dp)
+            )
             .clickable { onClick() }
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
