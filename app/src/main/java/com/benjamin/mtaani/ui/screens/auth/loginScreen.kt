@@ -49,7 +49,7 @@ import com.benjamin.mtaani.ui.theme.KenyanGreen
 import com.benjamin.mtaani.ui.theme.OLdNavy
 
 @Composable
-fun MtaaniLoginScreen(navController: NavController){
+fun LoginScreen(navController: NavController){
     val context = LocalContext.current
     // AuthViewModel is now preview-safe because it uses lazy initialization for Firebase
     val authViewModel = remember { AuthViewModel(navController, context) }
@@ -152,5 +152,5 @@ fun MtaaniLoginScreen(navController: NavController){
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview(){
-    MtaaniLoginScreen(rememberNavController())
+    LoginScreen(rememberNavController())
 }

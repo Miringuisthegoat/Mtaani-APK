@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.benjamin.mtaani.ui.screens.about.AboutScreen
+import com.benjamin.mtaani.ui.screens.auth.LoginScreen
 import com.benjamin.mtaani.ui.screens.auth.RegisterScreen
 import com.benjamin.mtaani.ui.screens.community.CommunityFeedScreen
 import com.benjamin.mtaani.ui.screens.detail.IssueDetailScreen
@@ -39,7 +40,7 @@ fun AppNavHost(
             OnboardingScreen(navController = navController)
         }
         composable(ROUT_LOGIN) {
-            com.benjamin.mtaani.ui.screens.auth.MtaaniLoginScreen(navController = navController)
+            LoginScreen(navController = navController)
         }
         composable(ROUT_REGISTER) {
             RegisterScreen(navController = navController)
