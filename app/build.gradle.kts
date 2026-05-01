@@ -87,10 +87,17 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
     //Maps
-    // FusedLocationProviderClient for the "My Location" FAB
-    implementation("com.google.android.gms:play-services-location:21.2.0")
+    // REMOVE these:
+// implementation("com.google.maps.android:maps-compose:4.3.3")
+// implementation("com.google.android.gms:play-services-maps:19.0.0")
 
-// You can now REMOVE the Google Maps Compose dependency if Leaflet fully replaces it:
-// implementation("com.google.maps.android:maps-compose:...")
+// KEEP this (still needed for GPS):
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+// ADD this:
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+
+//
 
 }
